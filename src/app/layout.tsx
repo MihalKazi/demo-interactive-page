@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-// IMPORT LEAFLET CSS
-import "leaflet/dist/leaflet.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Activaterights.org | Interactive Story Demo",
-  description: "Dynamic human rights journalism platform",
+  title: "Interactive Story",
+  description: "Data journalism template",
 };
 
 export default function RootLayout({
@@ -18,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      {/* suppressHydrationWarning prevents browser extensions from crashing Next.js */}
+      <body className={inter.className} suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
