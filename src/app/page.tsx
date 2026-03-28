@@ -1,65 +1,115 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useEffect, useState } from 'react';
+import Papa from 'papaparse';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title as ChartTitle, Tooltip } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+import { client } from '@/lib/sanity';
+import { PortableText } from '@portabletext/react';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTitle, Tooltip);
+
+// --- NETRA NEWS STYLE CHART ---
+const ChartBlock = ({ title, csvData }: { title: string; csvData: string }) => {
+  const [chartData, setChartData] = useState<any>(null);
+  useEffect(() => {
+    if(!csvData) return;
+    const results = Papa.parse(csvData, { header: true, skipEmptyLines: true });
+    const data = results.data as Record<string, string>[];
+    if(data.length === 0) return;
+    const keys = Object.keys(data[0]);
+    
+    setChartData({
+      labels: data.map((row) => row[keys[0]]),
+      datasets: [{ 
+        label: keys[1], 
+        data: data.map((row) => parseFloat(row[keys[1]])), 
+        backgroundColor: 'rgba(220, 38, 38, 0.9)', // Stark investigative red
+        borderRadius: 2 
+      }],
+    });
+  }, [csvData]);
+
+  if (!chartData) return null;
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="my-14 p-8 border-t-4 border-b-4 border-gray-900 max-w-3xl mx-auto">
+      <h3 className="text-xl font-bold font-sans text-gray-900 mb-6 uppercase tracking-wider">{title}</h3>
+      <Bar data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
     </div>
+  );
+};
+
+// --- NETRA NEWS STYLE INCIDENT ACCORDION ---
+const IncidentList = ({ incidents }: { incidents: any[] }) => {
+  const [openId, setOpenId] = useState<number | null>(null);
+  if (!incidents) return null;
+
+  return (
+    <div className="max-w-3xl mx-auto my-16 border-t-2 border-gray-900">
+      <h3 className="text-lg font-bold font-sans mt-4 mb-6 text-red-600 uppercase tracking-wide">Incident Database</h3>
+      {incidents.map((incident, i) => (
+        <div key={i} className="border-b border-gray-300">
+          <button 
+            onClick={() => setOpenId(openId === i ? null : i)}
+            className="w-full py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between text-left hover:bg-gray-50 transition-colors"
+          >
+             <div className="flex flex-wrap gap-x-6 gap-y-2 w-full font-sans text-sm text-gray-900">
+                <span className="text-gray-500 font-mono">{incident.date}</span>
+                <span className="font-bold w-32">{incident.name}</span>
+                <span className="text-gray-500">Age: {incident.age || 'Unknown'}</span>
+                <span className="w-24">{incident.accusation}</span>
+                <span className="text-red-600 font-bold">{incident.outcome}</span>
+             </div>
+             <span className="text-2xl text-gray-400 font-light ml-4">{openId === i ? '−' : '+'}</span>
+          </button>
+          {openId === i && (
+            <div className="p-5 bg-gray-50 font-serif text-gray-800 text-base leading-relaxed border-l-4 border-red-600 mb-4 shadow-inner">
+              {incident.details}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// --- MAIN PAGE ---
+export default function DemoStoryPage() {
+  const [story, setStory] = useState<any>(null);
+
+  useEffect(() => {
+    client.fetch(`*[_type == "story"] | order(_createdAt desc)[0]`).then(setStory);
+  }, []);
+
+  if (!story) return <div className="min-h-screen flex items-center justify-center font-sans tracking-widest uppercase text-gray-400">Loading Data...</div>;
+
+  return (
+    <main className="min-h-screen bg-[#FDFDFD] py-16 selection:bg-red-200">
+      <article className="max-w-4xl mx-auto px-4">
+        <header className="mb-16 border-b-2 border-gray-900 pb-12 max-w-3xl mx-auto">
+          <h1 className="text-5xl sm:text-6xl font-black font-sans text-gray-900 tracking-tight mb-6 leading-none">
+            {story.title}
+          </h1>
+          <div className="text-gray-500 text-sm font-sans uppercase tracking-widest font-bold">
+            By <span className="text-gray-900">{story.author}</span>
+          </div>
+        </header>
+
+        <div className="story-content space-y-8">
+          {story.content?.map((block: any, index: number) => {
+            if (block._type === 'block') {
+              return (
+                <div key={index} className="text-xl text-gray-900 leading-[1.8] font-serif max-w-2xl mx-auto prose prose-lg prose-p:mb-6">
+                  <PortableText value={[block]} />
+                </div>
+              );
+            }
+            if (block._type === 'chartBlock') return <ChartBlock key={index} {...block} />;
+            if (block._type === 'incidentList') return <IncidentList key={index} incidents={block.incidents} />;
+            return null;
+          })}
+        </div>
+      </article>
+    </main>
   );
 }
